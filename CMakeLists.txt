@@ -5,6 +5,4 @@ set(CMAKE_CXX_STANDARD 14)
 
 include_directories(src)
 
-add_executable(final_project_cpp
-        src/main.cpp
-        src/main.h)
+add_executable(final_project_cpp src/main.cpp src/main.h src/Ship.h)

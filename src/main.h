@@ -6,6 +6,7 @@
 #define STOWAGE_MODEL_MAIN_H
 
 #include <iostream>
+#include "Ship.h"
 
 //using namespace std;
 class main {
