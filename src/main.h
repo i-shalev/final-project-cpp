@@ -5,6 +5,8 @@
 #ifndef STOWAGE_MODEL_MAIN_H
 #define STOWAGE_MODEL_MAIN_H
 
+#include <iostream>
+
 //using namespace std;
 class main {
 
