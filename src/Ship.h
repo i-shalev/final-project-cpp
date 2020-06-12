@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <functional>
 #include <list>
+#include <set>
 
 namespace shipping
 {
@@ -251,8 +252,19 @@ namespace shipping
             }
 
             Ship(X x, Y y, Height max_height, std::vector<std::tuple<X, Y, Height>> restrictions) noexcept(false) : Ship(x, y, max_height) {
+                std::set<std::tuple<X, Y>> set;
                 for(auto tuple: restrictions){
+                    auto xIndex = std::get<0>(tuple);
+                    auto yIndex = std::get<1>(tuple);
+                    checkParams(xIndex, yIndex);
+                    if(set.find(std::tuple<X, Y>(xIndex, yIndex)) != set.end()) {
+                        throw BadShipOperationException("Duplicate restrictions (whether or not it has same limit).");
+                    }
+                    set.insert(std::tuple<X, Y>(xIndex, yIndex));
                     int restrictionHeight = std::get<2>(tuple);
+                    if(restrictionHeight >= height) {
+                        throw BadShipOperationException("Restriction with height equal or greater than the original height.");
+                    }
                     for(int i = 0; i < max_height - restrictionHeight; i++) {
                         blocks.at(std::get<0>(tuple)).at(std::get<1>(tuple)).at(i) = 1;
                     }
@@ -265,8 +277,12 @@ namespace shipping
             }
 
             void checkParams(X xIndex, Y yIndex) noexcept(false) {
-                if(xIndex >= x or yIndex >= y)
-                    throw BadShipOperationException("Index out of range.");
+                if(xIndex >= x){
+                    throw BadShipOperationException("X index out of range.");
+                }
+                if(yIndex >= y) {
+                    throw BadShipOperationException("Y index out of range.");
+                }
             }
 
             void load(X xIndex, Y yIndex, Container c) noexcept(false) {
