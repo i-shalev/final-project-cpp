@@ -139,6 +139,53 @@ namespace shipping
             }
         };
 
+        class position_const_iterator {
+            X currentX;
+            Y currentY;
+            Height currentH;
+            const std::vector<std::vector<std::vector<Container>>>& floors;
+            const std::vector<std::vector<std::vector<int>>>& valid;
+
+        public:
+            position_const_iterator(X currentX, Y currentY, Height currentH, const std::vector<std::vector<std::vector<Container>>>& floors, const std::vector<std::vector<std::vector<int>>>& valid) :
+                    currentX(currentX), currentY(currentY), currentH(currentH), floors(floors), valid(valid) {
+                if(currentH != -1) {
+                    if(valid.at(currentX).at(currentY).at(currentH) == 0)
+                        findNextContainer();
+                }
+            }
+
+            position_const_iterator operator++() {
+                findNextContainer();
+                return *this;
+            }
+
+            const Container& operator*() const {
+                return floors.at(currentX).at(currentY).at(currentH);
+            }
+
+            bool operator!=(position_const_iterator itr) const {
+                return currentX != itr.currentX or currentY != itr.currentY or currentH != itr.currentH;
+            }
+
+            void findNextContainer() {
+                if(currentH == -1)
+                    return;
+                nextIndex();
+                if(currentH == -1)
+                    return;
+                while(valid.at(currentX).at(currentY).at(currentH) == 0) {
+                    nextIndex();
+                    if(currentH == -1)
+                        return;
+                }
+            }
+
+            void nextIndex() {
+                currentH = Height{currentH-1};
+            }
+        };
+
         class GroupView {
             const std::unordered_map<Position, const Container&>* p_group = nullptr;
             using iterator_type = typename std::unordered_map<Position, const Container&>::const_iterator;
@@ -150,6 +197,24 @@ namespace shipping
             }
             auto end() const {
                 return p_group? p_group->end(): iterator_type{};
+            }
+        };
+
+        class viewByPosition {
+            X x;
+            Y y;
+            Height maxHeight;
+            const std::vector<std::vector<std::vector<Container>>>& floors;
+            const std::vector<std::vector<std::vector<int>>>& valid;
+
+        public:
+            viewByPosition(X x, Y y, Height maxHeight, const std::vector<std::vector<std::vector<Container>>>& floors, const std::vector<std::vector<std::vector<int>>>& valid):
+                x(x), y(y), maxHeight(maxHeight), floors(floors), valid(valid) {}
+            auto begin() const{
+                return position_const_iterator(x, y, Height{maxHeight-1}, floors, valid);
+            }
+            auto end() const{
+                return position_const_iterator(x, y, Height{-1}, floors, valid);
             }
         };
 
@@ -300,7 +365,9 @@ namespace shipping
                 return GroupView { 0 };
             }
 
-//        X currentX, Y currentY, Height currentH, std::vector<std::vector<std::vector<Container*>>>& floors,  X maxX,  Y maxY,  Height maxH
+            viewByPosition getContainersViewByPosition(X xIndex, Y yIndex) const{
+                return viewByPosition(xIndex, yIndex, height, floors, valid);
+            }
 
             const_iterator begin() {
                 return const_iterator(X{0}, Y{0}, Height{0}, floors, valid, x, y, height);

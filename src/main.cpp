@@ -8,6 +8,7 @@ int main(int argc, char **argv){
     sum += test2();
     sum += test3();
     sum += test4();
+    sum += test5();
     std::cout << sum << std::endl;
 }
 
@@ -181,6 +182,32 @@ int test4() {
     s2.insert(v2.begin(), v2.end());
 
     if(s1 == s2)
+        return 1;
+
+    return 0;
+}
+
+int test5() {
+    std::vector<std::tuple<X, Y, Height>> restrictions = {
+            std::tuple<X, Y, Height>(X{0}, Y{0}, Height{0}),
+    };
+
+    Ship<std::string> ship {X{3}, Y{2}, Height{2}, restrictions};
+
+    ship.load(X{0}, Y{1}, "str");
+    ship.load(X{0}, Y{1}, "sprr");
+    ship.load(X{2}, Y{1}, "not_include");
+
+    std::vector<std::string> v1 = {"sprr", "str"};
+
+    auto view00 = ship.getContainersViewByPosition(X{0}, Y{1});
+
+    std::vector<std::string> v2;
+    for(const auto& container : view00) {
+        v2.push_back(container);
+    }
+
+    if(v1 == v2)
         return 1;
 
     return 0;
