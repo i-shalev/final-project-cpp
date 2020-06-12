@@ -56,9 +56,13 @@ namespace shipping
     int addOneIfNeeded = 1;
 
     class BadShipOperationException : public std::exception {
+        std::string msg;
     public:
-        explicit BadShipOperationException(std::string msg) {
-            std::cout << msg << std::endl;
+        explicit BadShipOperationException(std::string msg) : msg(msg) {
+        }
+
+        std::string getMessage() {
+            return msg;
         }
     };
 
@@ -75,30 +79,25 @@ namespace shipping
             X currentX;
             Y currentY;
             Height currentH;
-            std::vector<std::vector<std::vector<Container*>>>& floors;
+            std::vector<std::vector<std::vector<Container>>>& floors;
+            std::vector<std::vector<std::vector<int>>>& valid;
 
         public:
-            const_iterator(X currentX, Y currentY, Height currentH, std::vector<std::vector<std::vector<Container*>>>& floors,  X maxX,  Y maxY,  Height maxH) :
-                currentX(currentX), currentY(currentY), currentH(currentH), floors(floors), maxX(maxX), maxY(maxY), maxH(maxH) {
-                std::cout << "Value at create: " << *(floors.at(0).at(1).at(0)) << std::endl;
+            const_iterator(X currentX, Y currentY, Height currentH, std::vector<std::vector<std::vector<Container>>>& floors, std::vector<std::vector<std::vector<int>>>& valid,  X maxX,  Y maxY,  Height maxH) :
+                currentX(currentX), currentY(currentY), currentH(currentH), floors(floors), valid(valid), maxX(maxX), maxY(maxY), maxH(maxH) {
                 if(!(currentX == -1 and currentY == -1 and currentH == -1)) {
-                    if(floors.at(currentX).at(currentY).at(currentH) == nullptr)
+                    if(valid.at(currentX).at(currentY).at(currentH) == 0)
                         findNextContainer();
-                } else {
-                    std::cout << "Value at create END: " << *(floors.at(0).at(1).at(0)) << std::endl;
                 }
             }
 
             const_iterator operator++() {
-                std::cout << "Value at operator++: " << *(floors.at(0).at(1).at(0)) << std::endl;
                 findNextContainer();
                 return *this;
             }
 
             const Container& operator*() const {
-                std::cout << "Value at *: " << *(floors.at(0).at(1).at(0)) << std::endl;
-                std::cout << "X: " << currentX << ", Y: " << currentY << ", Height: " << currentH << "value: " << *(floors.at(currentX).at(currentY).at(currentH)) << std::endl;
-                return *floors.at(currentX).at(currentY).at(currentH);
+                return floors.at(currentX).at(currentY).at(currentH);
             }
 
             bool operator!=(const_iterator itr) const {
@@ -106,15 +105,12 @@ namespace shipping
             }
 
             void findNextContainer() {
-                std::cout << "Value at findNextContainer 1: " << *(floors.at(0).at(1).at(0)) << std::endl;
                 if(currentX == -1 and currentY == -1 and currentH == -1)
                     return;
                 nextIndex();
-                std::cout << "Value at findNextContainer 2: " << *(floors.at(0).at(1).at(0)) << std::endl;
                 if(currentX == -1 and currentY == -1 and currentH == -1)
                     return;
-                std::cout << "Value at findNextContainer 3: " << *(floors.at(0).at(1).at(0)) << std::endl;
-                while(floors.at(currentX).at(currentY).at(currentH) == nullptr) {
+                while(valid.at(currentX).at(currentY).at(currentH) == 0) {
                     nextIndex();
                     if(currentX == -1 and currentY == -1 and currentH == -1)
                         return;
@@ -122,29 +118,24 @@ namespace shipping
             }
 
             void nextIndex() {
-                std::cout << "Value at nextIndex 1: " << *(floors.at(0).at(1).at(0)) << std::endl;
                 if(currentH < maxH - 1) {
                     currentH = Height{currentH+1};
                     return;
                 }
-                std::cout << "Value at nextIndex 2: " << *(floors.at(0).at(1).at(0)) << std::endl;
                 if(currentY < maxY - 1) {
                     currentH = Height{0};
                     currentY = Y{currentY+1};
                     return;
                 }
-                std::cout << "Value at nextIndex 3: " << *(floors.at(0).at(1).at(0)) << std::endl;
                 if(currentX < maxX -1) {
                     currentH = Height{0};
                     currentY = Y{0};
                     currentX = X{currentX+1};
                     return;
                 }
-                std::cout << "Value at nextIndex 4: " << *(floors.at(0).at(1).at(0)) << std::endl;
                 currentH = Height{-1};
                 currentY = Y{-1};
                 currentX = X{-1};
-                std::cout << "Value at nextIndex 5: " << *(floors.at(0).at(1).at(0)) << std::endl;
             }
         };
 
@@ -164,7 +155,8 @@ namespace shipping
 
         public:
             Grouping<Container> groupingFunctions;
-            std::vector<std::vector<std::vector<Container*>>> floors;
+            std::vector<std::vector<std::vector<Container>>> floors;
+            std::vector<std::vector<std::vector<int>>> valid;
             std::vector<std::vector<std::vector<int>>> blocks;
             X x;
             Y y;
@@ -178,12 +170,15 @@ namespace shipping
             Ship(X x, Y y, Height max_height) noexcept : height(max_height), x(x), y(y) {
                 for(int xIndex = 0; xIndex < x; xIndex++){
                     floors.emplace_back();
+                    valid.emplace_back();
                     blocks.emplace_back();
                     for(int yIndex = 0; yIndex < y; yIndex++){
                         floors.at(xIndex).emplace_back();
+                        valid.at(xIndex).emplace_back();
                         blocks.at(xIndex).emplace_back();
                         for(int hIndex = 0; hIndex < height; hIndex++){
-                            floors.at(xIndex).at(yIndex).push_back(nullptr);
+                            floors.at(xIndex).at(yIndex).emplace_back();
+                            valid.at(xIndex).at(yIndex).push_back(0);
                             blocks.at(xIndex).at(yIndex).push_back(0);
                         }
                     }
@@ -215,10 +210,11 @@ namespace shipping
                 if(heightIndexToInsert < 0 or heightIndexToInsert >= height){
                     throw BadShipOperationException("No place to insert the container.");
                 }
-                floors.at(xIndex).at(yIndex).at(heightIndexToInsert) = &c;
+                floors.at(xIndex).at(yIndex).at(heightIndexToInsert) = c;
+                valid.at(xIndex).at(yIndex).at(heightIndexToInsert) = 1;
                 addContainerToGroups(xIndex, yIndex, Height{heightIndexToInsert});
-                std::cout << "before:" << c << std::endl;
-                std::cout << "After:" << *(floors.at(xIndex).at(yIndex).at(Height{heightIndexToInsert})) << std::endl;
+//                std::cout << "before:" << c << std::endl;
+//                std::cout << "After:" << *(floors.at(xIndex).at(yIndex).at(Height{heightIndexToInsert})) << std::endl;
             }
 
             Container unload(X xIndex, Y yIndex) noexcept(false){
@@ -227,12 +223,12 @@ namespace shipping
                 if(heightIndexOfContainer < 0 or heightIndexOfContainer >= height){
                     throw BadShipOperationException("No container to unload from this position.");
                 }
-                if(floors.at(xIndex).at(yIndex).at(heightIndexOfContainer) == nullptr){
+                if(valid.at(xIndex).at(yIndex).at(heightIndexOfContainer) == 0){
                     throw BadShipOperationException("No container to unload from this position.");
                 }
                 removeContainerFromGroups(xIndex, yIndex, Height{heightIndexOfContainer});
-                auto container = *floors.at(xIndex).at(yIndex).at(heightIndexOfContainer);
-                floors.at(xIndex).at(yIndex).at(heightIndexOfContainer) = nullptr;
+                auto container = floors.at(xIndex).at(yIndex).at(heightIndexOfContainer);
+                valid.at(xIndex).at(yIndex).at(heightIndexOfContainer) = 0;
                 return container;
             }
 
@@ -255,7 +251,8 @@ namespace shipping
                 floors.at(to_x).at(to_y).at(heightIndexToInsert) = floors.at(from_x).at(from_y).at(heightIndexOfContainer);
                 addContainerToGroups(to_x, to_y, Height{heightIndexToInsert});
                 removeContainerFromGroups(from_x, from_y, Height{heightIndexOfContainer});
-                floors.at(from_x).at(from_y).at(heightIndexOfContainer) = nullptr;
+                valid.at(to_x).at(to_y).at(heightIndexOfContainer) = 1;
+                valid.at(from_x).at(from_y).at(heightIndexOfContainer) = 0;
             }
 
             int findLastHeightIndex(X xIndex, Y yIndex) noexcept {
@@ -269,7 +266,7 @@ namespace shipping
                         currentIndex++;
                         continue;
                     }
-                    if(floors.at(xIndex).at(yIndex).at(currentIndex) == nullptr){
+                    if(valid.at(xIndex).at(yIndex).at(currentIndex) == 0){
                         break;
                     }
                     currentIndex++;
@@ -278,14 +275,14 @@ namespace shipping
             }
 
             void addContainerToGroups(X x, Y y, int h) {
-                Container& e = *(floors.at(x).at(y).at(h));
+                Container& e = floors.at(x).at(y).at(h);
                 for(auto& group_pair: groupingFunctions) {
                     groups[group_pair.first][group_pair.second(e)].insert( { std::tuple<X,Y,Height>{x, y, h}, e } );
                 }
             }
 
             void removeContainerFromGroups(X x, Y y, int h) {
-                Container& e = *(floors.at(x).at(y).at(h));
+                Container& e = floors.at(x).at(y).at(h);
                 for(auto& group_pair: groupingFunctions) {
                     groups[group_pair.first][group_pair.second(e)].erase(std::tuple<X,Y,Height>{x, y,  h});
                 }
@@ -306,11 +303,11 @@ namespace shipping
 //        X currentX, Y currentY, Height currentH, std::vector<std::vector<std::vector<Container*>>>& floors,  X maxX,  Y maxY,  Height maxH
 
             const_iterator begin() {
-                return const_iterator(X{0}, Y{0}, Height{0}, floors, x, y, height);
+                return const_iterator(X{0}, Y{0}, Height{0}, floors, valid, x, y, height);
             }
 
             const_iterator end() {
-                return const_iterator(X{-1}, Y{-1}, Height{-1}, floors, x, y, height);
+                return const_iterator(X{-1}, Y{-1}, Height{-1}, floors, valid, x, y, height);
             }
     };
 };

@@ -1,11 +1,12 @@
+#include <set>
 #include "main.h"
 
 using namespace shipping;
 int main(int argc, char **argv){
     int sum = 0;
-//    sum += test1();
-//    sum += test2();
-//    sum += test3();
+    sum += test1();
+    sum += test2();
+    sum += test3();
     sum += test4();
     std::cout << sum << std::endl;
 }
@@ -27,13 +28,19 @@ int test1() {
     try {
         ship->move(X{0}, Y{1}, X{0}, Y{0});
     } catch (BadShipOperationException& e) {
-
+        if(e.getMessage() != "No place to insert the container.") {
+            std::cout << 2 << std::endl;
+            return 0;
+        }
     }
 
     try {
         auto output = ship->unload(X{0}, Y{0});
     } catch (BadShipOperationException& e) {
-
+        if(e.getMessage() != "No container to unload from this position.") {
+            std::cout << 3 << std::endl;
+            return 0;
+        }
     }
 
     try {
@@ -126,55 +133,55 @@ int test3() {
     auto ship = new Ship<std::string>(X{3}, Y{2}, Height{2}, restrictions, groupingFunctions);
 
     ship->load(X{0}, Y{1}, "str");
-    ship->load(X{0}, Y{1}, "sprr");
+    ship->load(X{1}, Y{1}, "sprr");
+
+    std::vector<std::tuple<shipping::X, shipping::Y, shipping::Height, std::string>> v1 =
+            {std::tuple<shipping::X, shipping::Y, shipping::Height,std::string>(X{0}, Y{1}, Height{0} ,"str"),
+            std::tuple<shipping::X, shipping::Y, shipping::Height,std::string>(X{1}, Y{1}, Height{0} ,"sprr")};
 
     auto view_Hh = ship->getContainersViewByGroup("first_letter_toupper", "S");
-    std::cout << "start" << std::endl;
+
+    std::vector<std::tuple<shipping::X, shipping::Y, shipping::Height, std::string>> v2;
     for(const auto& container_tuple : view_Hh) {
-        std::cout << "X: " << std::get<0>(container_tuple.first) << ", Y: " << std::get<1>(container_tuple.first) << ", Height: " << std::get<2>(container_tuple.first) << std::endl;
+        v2.emplace_back(
+                std::get<0>(container_tuple.first), std::get<1>(container_tuple.first), std::get<2>(container_tuple.first) ,container_tuple.second);
     }
-    std::cout << "finish" << std::endl;
-    return 1;
+
+    std::set<std::tuple<shipping::X, shipping::Y, shipping::Height, std::string>> s1;
+    s1.insert(v1.begin(), v1.end());
+
+    std::set<std::tuple<shipping::X, shipping::Y, shipping::Height, std::string>> s2;
+    s2.insert(v2.begin(), v2.end());
+
+    if(s1 == s2)
+        return 1;
+
+    return 0;
 }
 
 int test4() {
     Ship<int> ship{X{3}, Y{2}, Height{2}};
 
     ship.load(X{0}, Y{1}, 1);
-//    std::cout <<  ship->unload(X{0}, Y{1}) << std::endl;
-//    std::cout <<  1231234 << std::endl;
-//    ship->load(X{0}, Y{1}, 3);
-//    ship->load(X{0}, Y{0}, 4);
-//    ship->load(X{0}, Y{1}, "str1");
-    const auto& iter = ship.begin();
-    std::cout <<  "iter value: " << *iter << std::endl;
 
+    ship.load(X{0}, Y{1}, 3);
+    ship.load(X{0}, Y{0}, 4);
+
+    std::vector<int> v1 = {1, 3, 4};
+
+    std::vector<int> v2;
     for (const auto& container : ship) {
-//        printf("Address of x is %p\n", (void *)(&container));
-        std::cout <<  "iter value: " << container << std::endl;
+        v2.push_back(container);
     }
 
-    return 1;
+    std::set<int> s1;
+    s1.insert(v1.begin(), v1.end());
+
+    std::set<int> s2;
+    s2.insert(v2.begin(), v2.end());
+
+    if(s1 == s2)
+        return 1;
+
+    return 0;
 }
-//
-//int test4() {
-//    auto ship = new Ship<std::string>(X{3}, Y{2}, Height{2});
-//
-//    std::string st = "str";
-//    ship->load(X{0}, Y{1}, st);
-////    ship->load(X{0}, Y{1}, "str1");
-//
-//    auto view00 = ship->getContainersViewByPosition(X{0}, Y{1});
-//
-//    for(const auto& container : view00) {
-//        std::cout << container << std::endl;
-//    }
-//
-////    for (const auto & iter : *ship) {
-////        std::string curString = iter;
-////        printf("Address of x is %p\n", (void *)(&iter));
-////        std::cout << iter << std::endl;
-////    }
-//
-//    return 1;
-//}
