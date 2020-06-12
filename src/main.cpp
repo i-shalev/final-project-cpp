@@ -3,9 +3,10 @@
 using namespace shipping;
 int main(int argc, char **argv){
     int sum = 0;
-    sum += test1();
-    sum += test2();
-    sum += test3();
+//    sum += test1();
+//    sum += test2();
+//    sum += test3();
+    sum += test4();
     std::cout << sum << std::endl;
 }
 
@@ -127,7 +128,7 @@ int test3() {
     ship->load(X{0}, Y{1}, "str");
     ship->load(X{0}, Y{1}, "sprr");
 
-    auto view_Hh = ship->getContainersViewByGroup("first_letter_toupper", "s");
+    auto view_Hh = ship->getContainersViewByGroup("first_letter_toupper", "S");
     std::cout << "start" << std::endl;
     for(const auto& container_tuple : view_Hh) {
         std::cout << "X: " << std::get<0>(container_tuple.first) << ", Y: " << std::get<1>(container_tuple.first) << ", Height: " << std::get<2>(container_tuple.first) << std::endl;
@@ -135,19 +136,26 @@ int test3() {
     std::cout << "finish" << std::endl;
     return 1;
 }
-//int test3() {
-//    auto ship = new Ship<int>(X{3}, Y{2}, Height{2});
-//
-//    ship->load(X{0}, Y{1}, 2);
-////    ship->load(X{0}, Y{1}, "str1");
-//
-//    for (auto & iter : *ship) {
-//        printf("Address of x is %p\n", (void *)(&iter));
-//        std::cout <<  iter << std::endl;
-//    }
-//
-//    return 1;
-//}
+
+int test4() {
+    Ship<int> ship{X{3}, Y{2}, Height{2}};
+
+    ship.load(X{0}, Y{1}, 1);
+//    std::cout <<  ship->unload(X{0}, Y{1}) << std::endl;
+//    std::cout <<  1231234 << std::endl;
+//    ship->load(X{0}, Y{1}, 3);
+//    ship->load(X{0}, Y{0}, 4);
+//    ship->load(X{0}, Y{1}, "str1");
+    const auto& iter = ship.begin();
+    std::cout <<  "iter value: " << *iter << std::endl;
+
+    for (const auto& container : ship) {
+//        printf("Address of x is %p\n", (void *)(&container));
+        std::cout <<  "iter value: " << container << std::endl;
+    }
+
+    return 1;
+}
 //
 //int test4() {
 //    auto ship = new Ship<std::string>(X{3}, Y{2}, Height{2});

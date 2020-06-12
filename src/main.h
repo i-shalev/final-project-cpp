@@ -17,4 +17,5 @@ int main(int argc, char **argv);
 int test1();
 int test2();
 int test3();
+int test4();
 #endif //STOWAGE_MODEL_MAIN_H

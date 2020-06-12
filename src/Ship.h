@@ -68,6 +68,86 @@ namespace shipping
     template<typename Container>
     class Ship{
 
+        class const_iterator {
+            X maxX;
+            Y maxY;
+            Height maxH;
+            X currentX;
+            Y currentY;
+            Height currentH;
+            std::vector<std::vector<std::vector<Container*>>>& floors;
+
+        public:
+            const_iterator(X currentX, Y currentY, Height currentH, std::vector<std::vector<std::vector<Container*>>>& floors,  X maxX,  Y maxY,  Height maxH) :
+                currentX(currentX), currentY(currentY), currentH(currentH), floors(floors), maxX(maxX), maxY(maxY), maxH(maxH) {
+                std::cout << "Value at create: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                if(!(currentX == -1 and currentY == -1 and currentH == -1)) {
+                    if(floors.at(currentX).at(currentY).at(currentH) == nullptr)
+                        findNextContainer();
+                } else {
+                    std::cout << "Value at create END: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                }
+            }
+
+            const_iterator operator++() {
+                std::cout << "Value at operator++: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                findNextContainer();
+                return *this;
+            }
+
+            const Container& operator*() const {
+                std::cout << "Value at *: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                std::cout << "X: " << currentX << ", Y: " << currentY << ", Height: " << currentH << "value: " << *(floors.at(currentX).at(currentY).at(currentH)) << std::endl;
+                return *floors.at(currentX).at(currentY).at(currentH);
+            }
+
+            bool operator!=(const_iterator itr) const {
+                return currentX != itr.currentX or currentY != itr.currentY or currentH != itr.currentH;
+            }
+
+            void findNextContainer() {
+                std::cout << "Value at findNextContainer 1: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                if(currentX == -1 and currentY == -1 and currentH == -1)
+                    return;
+                nextIndex();
+                std::cout << "Value at findNextContainer 2: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                if(currentX == -1 and currentY == -1 and currentH == -1)
+                    return;
+                std::cout << "Value at findNextContainer 3: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                while(floors.at(currentX).at(currentY).at(currentH) == nullptr) {
+                    nextIndex();
+                    if(currentX == -1 and currentY == -1 and currentH == -1)
+                        return;
+                }
+            }
+
+            void nextIndex() {
+                std::cout << "Value at nextIndex 1: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                if(currentH < maxH - 1) {
+                    currentH = Height{currentH+1};
+                    return;
+                }
+                std::cout << "Value at nextIndex 2: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                if(currentY < maxY - 1) {
+                    currentH = Height{0};
+                    currentY = Y{currentY+1};
+                    return;
+                }
+                std::cout << "Value at nextIndex 3: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                if(currentX < maxX -1) {
+                    currentH = Height{0};
+                    currentY = Y{0};
+                    currentX = X{currentX+1};
+                    return;
+                }
+                std::cout << "Value at nextIndex 4: " << *(floors.at(0).at(1).at(0)) << std::endl;
+                currentH = Height{-1};
+                currentY = Y{-1};
+                currentX = X{-1};
+                std::cout << "Value at nextIndex 5: " << *(floors.at(0).at(1).at(0)) << std::endl;
+            }
+        };
+
         class GroupView {
             const std::unordered_map<Position, const Container&>* p_group = nullptr;
             using iterator_type = typename std::unordered_map<Position, const Container&>::const_iterator;
@@ -124,17 +204,25 @@ namespace shipping
                 this->groupingFunctions = groupingFunctions;
             }
 
+            void checkParams(X xIndex, Y yIndex) noexcept(false) {
+                if(xIndex >= x or yIndex >= y)
+                    throw BadShipOperationException("Index out of range.");
+            }
+
             void load(X xIndex, Y yIndex, Container c) noexcept(false) {
-//                printf("Address inside is %p\n", (void *)&c);
+                checkParams(xIndex, yIndex);
                 int heightIndexToInsert = findLastHeightIndex(xIndex, yIndex) + 1;
                 if(heightIndexToInsert < 0 or heightIndexToInsert >= height){
                     throw BadShipOperationException("No place to insert the container.");
                 }
                 floors.at(xIndex).at(yIndex).at(heightIndexToInsert) = &c;
                 addContainerToGroups(xIndex, yIndex, Height{heightIndexToInsert});
+                std::cout << "before:" << c << std::endl;
+                std::cout << "After:" << *(floors.at(xIndex).at(yIndex).at(Height{heightIndexToInsert})) << std::endl;
             }
 
             Container unload(X xIndex, Y yIndex) noexcept(false){
+                checkParams(xIndex, yIndex);
                 int heightIndexOfContainer = findLastHeightIndex(xIndex, yIndex);
                 if(heightIndexOfContainer < 0 or heightIndexOfContainer >= height){
                     throw BadShipOperationException("No container to unload from this position.");
@@ -149,6 +237,8 @@ namespace shipping
             }
 
             void move(X from_x, Y from_y, X to_x, Y to_y) noexcept(false) {
+                checkParams(from_x, from_y);
+                checkParams(to_x, to_y);
                 if(from_x == to_x and from_y == to_y){
                     return;
                 }
@@ -213,6 +303,15 @@ namespace shipping
                 return GroupView { 0 };
             }
 
+//        X currentX, Y currentY, Height currentH, std::vector<std::vector<std::vector<Container*>>>& floors,  X maxX,  Y maxY,  Height maxH
+
+            const_iterator begin() {
+                return const_iterator(X{0}, Y{0}, Height{0}, floors, x, y, height);
+            }
+
+            const_iterator end() {
+                return const_iterator(X{-1}, Y{-1}, Height{-1}, floors, x, y, height);
+            }
     };
 };
 
