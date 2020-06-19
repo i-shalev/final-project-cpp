@@ -85,13 +85,12 @@ namespace shipping
 
         public:
             const_iterator(X currentX, Y currentY, Height currentH, std::vector<std::vector<std::vector<Container>>>& floors, std::vector<std::vector<std::vector<int>>>& valid,  X maxX,  Y maxY,  Height maxH) :
-                currentX(currentX), currentY(currentY), currentH(currentH), floors(floors), valid(valid), maxX(maxX), maxY(maxY), maxH(maxH) {
+                    maxX(maxX), maxY(maxY), maxH(maxH), currentX(currentX), currentY(currentY), currentH(currentH), floors(floors), valid(valid) {
                 if(!(currentX == -1 and currentY == -1 and currentH == -1)) {
                     if(valid.at(currentX).at(currentY).at(currentH) == 0)
                         findNextContainer();
                 }
             }
-
             const_iterator operator++() {
                 findNextContainer();
                 return *this;
@@ -207,12 +206,15 @@ namespace shipping
             Height maxHeight;
             const std::vector<std::vector<std::vector<Container>>>& floors;
             const std::vector<std::vector<std::vector<int>>>& valid;
+            bool validIndex;
 
         public:
-            viewByPosition(X x, Y y, Height maxHeight, const std::vector<std::vector<std::vector<Container>>>& floors, const std::vector<std::vector<std::vector<int>>>& valid):
-                x(x), y(y), maxHeight(maxHeight), floors(floors), valid(valid) {}
+            viewByPosition(X x, Y y, Height maxHeight, const std::vector<std::vector<std::vector<Container>>>& floors, const std::vector<std::vector<std::vector<int>>>& valid, bool validIndex):
+                x(x), y(y), maxHeight(maxHeight), floors(floors), valid(valid), validIndex(validIndex) {}
             auto begin() const{
-                return position_const_iterator(x, y, Height{maxHeight-1}, floors, valid);
+                if(validIndex)
+                    return position_const_iterator(x, y, Height{maxHeight-1}, floors, valid);
+                return position_const_iterator(x, y, Height{-1}, floors, valid);
             }
             auto end() const{
                 return position_const_iterator(x, y, Height{-1}, floors, valid);
@@ -230,10 +232,12 @@ namespace shipping
             using Pos2Container = std::unordered_map<Position, const Container&>;
             using Group = std::unordered_map<std::string, Pos2Container>;
             // all groupings by their grouping name
-            std::unordered_map<std::string, Group> groups;
+            // mutable as this is not part of the state of the class
+            // it is required in order to allow getView to create non-existing groups
+            mutable std::unordered_map<std::string, Group> groups;
 
         public:
-            Ship(X x, Y y, Height max_height) noexcept : height(max_height), x(x), y(y) {
+            Ship(X x, Y y, Height max_height) noexcept :  x(x), y(y), height(max_height) {
                 for(int xIndex = 0; xIndex < x; xIndex++){
                     floors.emplace_back();
                     valid.emplace_back();
@@ -371,18 +375,29 @@ namespace shipping
 
             GroupView getContainersViewByGroup(const std::string& groupingName, const std::string& groupName) const {
                 auto itr = groups.find(groupingName);
+                if(itr == groups.end() && groupingFunctions.find(groupingName) != groupingFunctions.end()) {
+                    // C++17 auto tuple unpack
+                    auto [insert_itr, _] = groups.insert({groupingName, Group{}});
+                    itr = insert_itr;
+                }
                 if(itr != groups.end()) {
                     const auto& grouping = itr->second;
                     auto itr2 = grouping.find(groupName);
-                    if(itr2 != grouping.end()) {
-                        return GroupView { groups.at(groupingName).at(groupName) };
+                    if(itr2 == grouping.end()) {
+                        // C++17 auto tuple unpack
+                        auto [insert_itr, _] = itr->second.insert({groupName, Pos2Container{}});
+                        itr2 = insert_itr;
                     }
+                    return GroupView { itr2->second };
+
                 }
                 return GroupView { 0 };
             }
 
             viewByPosition getContainersViewByPosition(X xIndex, Y yIndex) const{
-                return viewByPosition(xIndex, yIndex, height, floors, valid);
+                if(xIndex < x and yIndex < y)
+                    return viewByPosition(xIndex, yIndex, height, floors, valid, true);
+                return viewByPosition(xIndex, yIndex, height, floors, valid, false);
             }
 
             const_iterator begin() {
@@ -392,7 +407,12 @@ namespace shipping
             const_iterator end() {
                 return const_iterator(X{-1}, Y{-1}, Height{-1}, floors, valid, x, y, height);
             }
+
+        Ship(const Ship&) = delete;
+        Ship& operator=(const Ship&) = delete;
+        Ship(Ship&&) = default;
+        Ship& operator=(Ship&&) = default;
     };
-};
+}
 
 #endif //FINAL_PROJECT_CPP_SHIP_H
