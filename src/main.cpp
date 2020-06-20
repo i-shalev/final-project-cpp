@@ -24,7 +24,6 @@ int test1(){
     try {
         Ship<std::string> myShip{ X{4}, Y{12}, Height{6}, restrictions };
     } catch(BadShipOperationException& e) {
-        std::cout << e.getMessage() << std::endl;
         if(e.getMessage().compare("Restriction with height equal or greater than the original height.")!=0)
             return 1;
     }
@@ -750,6 +749,65 @@ int test20() {
     return 0;
 }
 
+int test21() {
+    Grouping<std::string> groupingFunctions = {
+            { "first_letter",
+                    [](const std::string& s){ return std::string(1, s[0]); }
+            }
+    };
+
+    std::vector<std::tuple<X, Y, Height>> restrictions = {
+            std::tuple<X, Y, Height>(X{0}, Y{0}, Height{2}),
+            std::tuple<X, Y, Height>(X{1}, Y{1}, Height{1}),
+            std::tuple<X, Y, Height>(X{0}, Y{1}, Height{3}),
+    };
+
+    auto ship = new Ship<std::string>(X{3}, Y{2}, Height{4}, restrictions, groupingFunctions);
+
+    ship->load(X{0}, Y{0}, "str1");
+    ship->load(X{1}, Y{1}, "str2");
+    ship->load(X{0}, Y{1}, "str3");
+    ship->load(X{2}, Y{1}, "str4");
+
+    std::vector<std::tuple<shipping::X, shipping::Y, shipping::Height, std::string>> v1 =
+            {std::tuple<shipping::X, shipping::Y, shipping::Height,std::string>(X{0}, Y{0}, Height{0} ,"str1"),
+            std::tuple<shipping::X, shipping::Y, shipping::Height,std::string>(X{1}, Y{1}, Height{0} ,"str2"),
+            std::tuple<shipping::X, shipping::Y, shipping::Height,std::string>(X{0}, Y{1}, Height{0} ,"str3"),
+            std::tuple<shipping::X, shipping::Y, shipping::Height,std::string>(X{2}, Y{1}, Height{0} ,"str4")};
+
+
+    auto view_Hh = ship->getContainersViewByGroup("first_letter", "s");
+
+    std::vector<std::tuple<shipping::X, shipping::Y, shipping::Height, std::string>> v2;
+    for(const auto& container_tuple : view_Hh) {
+        v2.emplace_back(
+                std::get<0>(container_tuple.first), std::get<1>(container_tuple.first), std::get<2>(container_tuple.first) ,container_tuple.second);
+    }
+
+    std::set<std::tuple<shipping::X, shipping::Y, shipping::Height, std::string>> s1;
+    s1.insert(v1.begin(), v1.end());
+
+    std::set<std::tuple<shipping::X, shipping::Y, shipping::Height, std::string>> s2;
+    s2.insert(v2.begin(), v2.end());
+
+//    for(auto s:s1){
+//        std::cout << std::get<0>(s) << ", " << std::get<1>(s) << ", " << std::get<2>(s) << ", " << std::get<3>(s) << std::endl;
+//    }
+//
+//    std::cout << " " << std::endl;
+//
+//
+//    for(auto s:s2){
+//        std::cout << std::get<0>(s) << ", " << std::get<1>(s) << ", " << std::get<2>(s) << ", " << std::get<3>(s) << std::endl;
+//    }
+
+    if(s1 == s2)
+        return 0;
+
+    return 1;
+}
+
+
 int main() {
     bool somethingFailed = false;
     if(test1()){
@@ -871,6 +929,12 @@ int main() {
         std::cout << "Test 20 failed" << std::endl;
     } else
         std::cout << "Test 20 passed" << std::endl;
+
+    if(test21()){
+        somethingFailed = true;
+        std::cout << "Test 21 failed" << std::endl;
+    } else
+        std::cout << "Test 21 passed" << std::endl;
 
     if(!somethingFailed) {
         std::cout << " " << std::endl;

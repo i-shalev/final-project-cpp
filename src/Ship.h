@@ -359,17 +359,35 @@ namespace shipping
                 return currentIndex-1;
             }
 
-            void addContainerToGroups(X x, Y y, int h) {
+            void addContainerToGroups(X x, Y y, Height h) {
                 Container& e = floors.at(x).at(y).at(h);
+                int numBlocks = 0;
+                for(int i = 0; i < h; i++) {
+                    if(blocks.at(x).at(y).at(i) == 1) {
+                        numBlocks++;
+                    } else {
+                        break;
+                    }
+                }
+                Height newH = Height{h - numBlocks};
                 for(auto& group_pair: groupingFunctions) {
-                    groups[group_pair.first][group_pair.second(e)].insert( { std::tuple<X,Y,Height>{x, y, h}, e } );
+                    groups[group_pair.first][group_pair.second(e)].insert( { std::tuple<X,Y,Height>{x, y, newH}, e } );
                 }
             }
 
             void removeContainerFromGroups(X x, Y y, int h) {
                 Container& e = floors.at(x).at(y).at(h);
+                int numBlocks = 0;
+                for(int i = 0; i < h; i++) {
+                    if(blocks.at(x).at(y).at(i) == 1) {
+                        numBlocks++;
+                    } else {
+                        break;
+                    }
+                }
+                Height newH = Height{h - numBlocks};
                 for(auto& group_pair: groupingFunctions) {
-                    groups[group_pair.first][group_pair.second(e)].erase(std::tuple<X,Y,Height>{x, y,  h});
+                    groups[group_pair.first][group_pair.second(e)].erase(std::tuple<X,Y,Height>{x, y,  newH});
                 }
             }
 
