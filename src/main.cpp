@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Ship.h"
 using namespace shipping;
+
 int test1(){
     std::vector<std::tuple<X, Y, Height>> restrictions = {
             std::tuple<X,Y,Height>(X{2}, Y{6}, Height{0}),
@@ -497,13 +498,13 @@ int test12() {
 
     Ship<std::string> ship {X{3}, Y{2}, Height{2}, restrictions};
 
+    auto view00 = ship.getContainersViewByPosition(X{0}, Y{1});
+
     ship.load(X{0}, Y{1}, "str");
     ship.load(X{0}, Y{1}, "sprr");
     ship.load(X{2}, Y{1}, "not_include");
 
     std::vector<std::string> v1 = {"sprr", "str"};
-
-    auto view00 = ship.getContainersViewByPosition(X{0}, Y{1});
 
     std::vector<std::string> v2;
     for(const auto& container : view00) {
@@ -807,6 +808,45 @@ int test21() {
     return 1;
 }
 
+int test22() {
+    Grouping<std::string> groupingFunctions = {
+            { "first_letter",
+                    [](const std::string& s){ return std::string(1, s[0]); }
+            }
+    };
+
+    std::vector<std::tuple<X, Y, Height>> restrictions = {
+            std::tuple<X, Y, Height>(X{0}, Y{0}, Height{2}),
+            std::tuple<X, Y, Height>(X{1}, Y{1}, Height{1}),
+            std::tuple<X, Y, Height>(X{0}, Y{1}, Height{3}),
+    };
+
+    Ship<std::string> ship(X{3}, Y{2}, Height{4}, restrictions, groupingFunctions);
+
+    ship.load(X{0}, Y{0}, "str1");
+    ship.load(X{1}, Y{1}, "str2");
+    ship.load(X{0}, Y{1}, "str3");
+    ship.load(X{2}, Y{1}, "str4");
+
+    std::vector<std::string> v1 = {"str1", "str2", "str3", "str4"};
+
+    std::vector<std::string> v2;
+    for(auto& cont : ship) {
+        v2.push_back(cont);
+    }
+
+    std::set<std::string> s1;
+    s1.insert(v1.begin(), v1.end());
+
+    std::set<std::string> s2;
+    s2.insert(v2.begin(), v2.end());
+
+    if(s1 == s2)
+        return 0;
+
+    return 1;
+
+}
 
 int main() {
     bool somethingFailed = false;
@@ -935,6 +975,12 @@ int main() {
         std::cout << "Test 21 failed" << std::endl;
     } else
         std::cout << "Test 21 passed" << std::endl;
+
+    if(test22()){
+        somethingFailed = true;
+        std::cout << "Test 22 failed" << std::endl;
+    } else
+        std::cout << "Test 22 passed" << std::endl;
 
     if(!somethingFailed) {
         std::cout << " " << std::endl;

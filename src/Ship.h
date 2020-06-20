@@ -54,12 +54,10 @@ namespace std
 
 namespace shipping
 {
-    int addOneIfNeeded = 1;
-
     class BadShipOperationException : public std::exception {
         std::string msg;
     public:
-        explicit BadShipOperationException(std::string msg) : msg(msg) {
+        BadShipOperationException(std::string msg) : msg(msg) {
         }
 
         std::string getMessage() {
@@ -281,39 +279,37 @@ namespace shipping
             }
 
             void checkParams(X xIndex, Y yIndex) noexcept(false) {
-                if(xIndex >= x){
+                if(xIndex >= x or xIndex < 0 ){
                     throw BadShipOperationException("X index out of range.");
                 }
-                if(yIndex >= y) {
+                if(yIndex >= y or yIndex < 0) {
                     throw BadShipOperationException("Y index out of range.");
                 }
             }
 
-            void load(X xIndex, Y yIndex, Container c) noexcept(false) {
-                checkParams(xIndex, yIndex);
-                int heightIndexToInsert = findLastHeightIndex(xIndex, yIndex) + 1;
+            void load(X x, Y y, Container c) noexcept(false) {
+                checkParams(x, y);
+                int heightIndexToInsert = findLastHeightIndex(x, y) + 1;
                 if(heightIndexToInsert < 0 or heightIndexToInsert >= height){
                     throw BadShipOperationException("No place to insert the container.");
                 }
-                floors.at(xIndex).at(yIndex).at(heightIndexToInsert) = c;
-                valid.at(xIndex).at(yIndex).at(heightIndexToInsert) = 1;
-                addContainerToGroups(xIndex, yIndex, Height{heightIndexToInsert});
-//                std::cout << "before:" << c << std::endl;
-//                std::cout << "After:" << *(floors.at(xIndex).at(yIndex).at(Height{heightIndexToInsert})) << std::endl;
+                floors.at(x).at(y).at(heightIndexToInsert) = c;
+                valid.at(x).at(y).at(heightIndexToInsert) = 1;
+                addContainerToGroups(x, y, Height{heightIndexToInsert});
             }
 
-            Container unload(X xIndex, Y yIndex) noexcept(false){
-                checkParams(xIndex, yIndex);
-                int heightIndexOfContainer = findLastHeightIndex(xIndex, yIndex);
+            Container unload(X x, Y y) noexcept(false){
+                checkParams(x, y);
+                int heightIndexOfContainer = findLastHeightIndex(x, y);
                 if(heightIndexOfContainer < 0 or heightIndexOfContainer >= height){
                     throw BadShipOperationException("No container to unload from this position.");
                 }
-                if(valid.at(xIndex).at(yIndex).at(heightIndexOfContainer) == 0){
+                if(valid.at(x).at(y).at(heightIndexOfContainer) == 0){
                     throw BadShipOperationException("No container to unload from this position.");
                 }
-                removeContainerFromGroups(xIndex, yIndex, Height{heightIndexOfContainer});
-                auto container = floors.at(xIndex).at(yIndex).at(heightIndexOfContainer);
-                valid.at(xIndex).at(yIndex).at(heightIndexOfContainer) = 0;
+                removeContainerFromGroups(x, y, Height{heightIndexOfContainer});
+                auto container = floors.at(x).at(y).at(heightIndexOfContainer);
+                valid.at(x).at(y).at(heightIndexOfContainer) = 0;
                 return container;
             }
 
@@ -341,7 +337,7 @@ namespace shipping
             }
 
             int findLastHeightIndex(X xIndex, Y yIndex) noexcept {
-                if(x < xIndex or y < yIndex){
+                if(x < xIndex or y < yIndex or xIndex < 0 or yIndex < 0){
                     return -2;
                 }
 
@@ -394,17 +390,15 @@ namespace shipping
             GroupView getContainersViewByGroup(const std::string& groupingName, const std::string& groupName) const {
                 auto itr = groups.find(groupingName);
                 if(itr == groups.end() && groupingFunctions.find(groupingName) != groupingFunctions.end()) {
-                    // C++17 auto tuple unpack
-                    auto [insert_itr, _] = groups.insert({groupingName, Group{}});
-                    itr = insert_itr;
+                    auto pair = groups.insert({groupingName, Group{}});
+                    itr = pair.first;
                 }
                 if(itr != groups.end()) {
                     const auto& grouping = itr->second;
                     auto itr2 = grouping.find(groupName);
                     if(itr2 == grouping.end()) {
-                        // C++17 auto tuple unpack
-                        auto [insert_itr, _] = itr->second.insert({groupName, Pos2Container{}});
-                        itr2 = insert_itr;
+                        auto pair = itr->second.insert({groupName, Pos2Container{}});
+                        itr2 = pair.first;
                     }
                     return GroupView { itr2->second };
 
@@ -412,10 +406,10 @@ namespace shipping
                 return GroupView { 0 };
             }
 
-            viewByPosition getContainersViewByPosition(X xIndex, Y yIndex) const{
-                if(xIndex < x and yIndex < y)
-                    return viewByPosition(xIndex, yIndex, height, floors, valid, true);
-                return viewByPosition(xIndex, yIndex, height, floors, valid, false);
+            viewByPosition getContainersViewByPosition(X x, Y y) const{
+                if(x < this->x and y < this->y and x >= 0 and y >= 0)
+                    return viewByPosition(x, y, height, floors, valid, true);
+                return viewByPosition(x, y, height, floors, valid, false);
             }
 
             const_iterator begin() {
@@ -426,10 +420,11 @@ namespace shipping
                 return const_iterator(X{-1}, Y{-1}, Height{-1}, floors, valid, x, y, height);
             }
 
+        // deleted because https://moodle.tau.ac.il/mod/forum/discuss.php?d=136637
         Ship(const Ship&) = delete;
         Ship& operator=(const Ship&) = delete;
-        Ship(Ship&&) = default;
-        Ship& operator=(Ship&&) = default;
+        Ship(Ship&&) = delete;
+        Ship& operator=(Ship&&) = delete;
     };
 }
 
