@@ -847,7 +847,200 @@ int test22() {
     return 1;
 
 }
+int test23(){
+    // create restrictions for specific locations on the ship
+    std::vector<std::tuple<X, Y, Height>> restrictions = {
+            std::tuple(X{2}, Y{6}, Height{0}),
+            std::tuple(X{2}, Y{7}, Height{1}),
+            std::tuple(X{2}, Y{5}, Height{6}),
+    };
 
+    // create bad ship 1
+    try {
+        restrictions.push_back( std::tuple(X{2}, Y{5}, Height{6}) );
+        Ship<std::string> myShip{ X{4}, Y{12}, Height{16}, restrictions };
+        return 1;
+    } catch(BadShipOperationException& e) {
+        // exception: duplicate restrictions (whether or not it has same limit):
+        // restriction with X{2}, Y{5} appears more than once (added in the try)
+        restrictions.pop_back(); // remove the duplicate restriction
+    }
+    // create bad ship 2
+    try {
+        Ship<std::string> myShip{ X{4}, Y{7}, Height{8}, restrictions };
+        return 1;
+    } catch(BadShipOperationException& e) {
+        // exception due to bad restrictions:
+        // restriction with Y=7, when the size of Y is 7
+    }
+    // create bad ship 3
+    try {
+        Ship<std::string> myShip{ X{4}, Y{12}, Height{6}, restrictions };
+        return 1;
+    } catch(BadShipOperationException& e) {
+        // exception due to bad restrictions:
+        // restriction with height=6, when original height is equal or smaller
+    }
+
+    // create good ship
+    Ship<std::string> myShip{ X{4}, Y{8}, Height{8}, restrictions };
+
+    // bad load - no room
+    try {
+        myShip.load(X{2}, Y{6}, "Hello");
+        return 1;
+    } catch(BadShipOperationException& e) { /* no room at this location */ }
+
+    // good load
+    myShip.load(X{2}, Y{7}, "Hello");
+
+    // bad load - no room
+    try {
+        myShip.load(X{2}, Y{7}, "Hello");
+        return 1;
+    } catch(BadShipOperationException& e) { /* no room at this location */ }
+
+    // bad unload - no container at location
+    try {
+        std::string container = myShip.unload(X{1}, Y{1});
+        return 1;
+    } catch(BadShipOperationException& e) { /* no container at this location */ }
+
+    // bad load - wrong index
+    try {
+        myShip.load(X{1}, Y{8}, "Hi");
+    } catch(BadShipOperationException& e) { /* bad index Y {8} */ }
+    return 0;
+
+}
+
+int test24(){
+    using std::string;
+    // create grouping pairs
+    Grouping<std::string> groupingFunctions = {
+            { "first_letter",
+                    [](const string& s){ return string(1, s[0]); }
+            },
+            { "first_letter_toupper",
+                    [](const string& s){ return string(1, char(std::toupper(s[0]))); }
+            }
+    };
+    // create restrictions
+    std::vector<std::tuple<X, Y, Height>> restrictions = {
+            std::tuple(X{2}, Y{6}, Height{4}),
+            std::tuple(X{2}, Y{7}, Height{6}),
+            std::tuple(X{0}, Y{0}, Height{2})
+    };
+    // create ship
+    Ship<std::string> myShip{ X{5}, Y{12}, Height{8},
+                              restrictions,
+                              groupingFunctions };
+    // load ג€containersג€
+    myShip.load(X{0}, Y{0}, "Hello");
+    myShip.load(X{1}, Y{1}, "hey");
+    myShip.load(X{1}, Y{1}, "bye");
+
+    auto view00 = myShip.getContainersViewByPosition(X{0}, Y{0});
+    auto view_h = myShip.getContainersViewByGroup("first_letter", "h");
+    auto view_Hh = myShip.getContainersViewByGroup("first_letter_toupper", "H");
+
+    myShip.load(X{0}, Y{0}, "hi");
+
+    // loop on all ג€containersג€: Hello, hi, hey, bye - in some undefined order
+    std::set<string> set = {"Hello", "hi", "hey", "bye"};
+    int i=0;
+    for(const auto& container : myShip) {
+        set.erase(container);
+        i++;
+    }
+    if(!set.empty())
+        return 1;
+    if(i!=4)
+        return 1;
+
+    // loop on view00: hi, Hello - in this exact order
+    i=0;
+    for(const auto& container : view00) {
+        if(i==0)
+        {
+            if(container!="hi")
+                return 1;
+        }
+        else if(i==1)
+        {
+            if(container!="Hello")
+                return 1;
+        } else
+            return 1;
+        i++;
+    }
+
+    // loop on view_h:	pair { tuple{X{0}, Y{0}, Height{1}}, hi },
+    // 						pair { tuple{X{1}, Y{1}, Height{0}}, hey }
+    // - in some undefined order
+    i = 0;
+    for(const auto& container_tuple : view_h) {
+        if(container_tuple.second == "hi"){
+            if(std::get<0>(container_tuple.first)!=0)
+                return 1;
+            if(std::get<1>(container_tuple.first)!=0)
+                return 1;
+            if(std::get<2>(container_tuple.first)!=1)
+                return 1;
+        }
+        else if(container_tuple.second == "hey"){
+            if(std::get<0>(container_tuple.first)!=1)
+                return 1;
+            if(std::get<1>(container_tuple.first)!=1)
+                return 1;
+            if(std::get<2>(container_tuple.first)!=0)
+                return 1;
+        } else
+            return 1;
+        i++;
+    }
+    if(i!=2)
+        return 1;
+
+    // loop on view_Hh:	pair { tuple{X{0}, Y{0}, Height{0}}, Hello },
+    // 						pair { tuple{X{0}, Y{0}, Height{1}}, hi },
+    //						pair { tuple{X{1}, Y{1}, Height{0}}, hey }
+    // - in some undefined order
+    i=0;
+    for(const auto& container_tuple : view_Hh) {
+        if(container_tuple.second == "hi"){
+            if(std::get<0>(container_tuple.first)!=0)
+                return 1;
+            if(std::get<1>(container_tuple.first)!=0)
+                return 1;
+            if(std::get<2>(container_tuple.first)!=1)
+                return 1;
+        }
+        else if(container_tuple.second == "hey"){
+            if(std::get<0>(container_tuple.first)!=1)
+                return 1;
+            if(std::get<1>(container_tuple.first)!=1)
+                return 1;
+            if(std::get<2>(container_tuple.first)!=0)
+                return 1;
+        }
+        else if(container_tuple.second == "Hello"){
+            if(std::get<0>(container_tuple.first)!=0)
+                return 1;
+            if(std::get<1>(container_tuple.first)!=0)
+                return 1;
+            if(std::get<2>(container_tuple.first)!=0)
+                return 1;
+        } else
+            return 1;
+        i++;
+    }
+    if(i!=3)
+        return 1;
+
+    return 0;
+
+}
 int main() {
     bool somethingFailed = false;
     if(test1()){
@@ -963,24 +1156,31 @@ int main() {
         std::cout << "Test 19 failed" << std::endl;
     } else
         std::cout << "Test 19 passed" << std::endl;
-
     if(test20()){
         somethingFailed = true;
         std::cout << "Test 20 failed" << std::endl;
     } else
         std::cout << "Test 20 passed" << std::endl;
-
     if(test21()){
         somethingFailed = true;
         std::cout << "Test 21 failed" << std::endl;
     } else
         std::cout << "Test 21 passed" << std::endl;
-
     if(test22()){
         somethingFailed = true;
         std::cout << "Test 22 failed" << std::endl;
     } else
         std::cout << "Test 22 passed" << std::endl;
+    if(test23()){
+        somethingFailed = true;
+        std::cout << "Test 23 failed" << std::endl;
+    } else
+        std::cout << "Test 23 passed" << std::endl;
+    if(test24()){
+        somethingFailed = true;
+        std::cout << "Test 24 failed" << std::endl;
+    } else
+        std::cout << "Test 24 passed" << std::endl;
 
     if(!somethingFailed) {
         std::cout << " " << std::endl;

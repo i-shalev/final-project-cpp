@@ -1,6 +1,4 @@
-//
-// Created by itay on 08/06/2020.
-//
+//itayshalev 206283228
 
 #ifndef FINAL_PROJECT_CPP_SHIP_H
 #define FINAL_PROJECT_CPP_SHIP_H
@@ -99,7 +97,7 @@ namespace shipping
             }
 
             bool operator!=(const_iterator itr) const {
-                return currentX != itr.currentX or currentY != itr.currentY or currentH != itr.currentH;
+                return currentX != itr.currentX or currentY != itr.currentY or currentH != itr.currentH or &floors != &itr.floors;
             }
 
             void findNextContainer() {
@@ -163,7 +161,7 @@ namespace shipping
             }
 
             bool operator!=(position_const_iterator itr) const {
-                return currentX != itr.currentX or currentY != itr.currentY or currentH != itr.currentH;
+                return currentX != itr.currentX or currentY != itr.currentY or currentH != itr.currentH or &floors != &itr.floors;
             }
 
             void findNextContainer() {
