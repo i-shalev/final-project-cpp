@@ -314,13 +314,16 @@ namespace shipping
             void move(X from_x, Y from_y, X to_x, Y to_y) noexcept(false) {
                 checkParams(from_x, from_y);
                 checkParams(to_x, to_y);
-                if(from_x == to_x and from_y == to_y){
-                    return;
-                }
+
                 int heightIndexOfContainer = findLastHeightIndex(from_x, from_y);
                 if(heightIndexOfContainer < 0 or heightIndexOfContainer >= height){
                     throw BadShipOperationException("No container to move from this position.");
                 }
+
+                if(from_x == to_x and from_y == to_y){
+                    return;
+                }
+
 
                 int heightIndexToInsert = findLastHeightIndex(to_x, to_y) + 1;
                 if(heightIndexToInsert < 0 or heightIndexToInsert >= height ){
@@ -330,7 +333,7 @@ namespace shipping
                 floors.at(to_x).at(to_y).at(heightIndexToInsert) = floors.at(from_x).at(from_y).at(heightIndexOfContainer);
                 addContainerToGroups(to_x, to_y, Height{heightIndexToInsert});
                 removeContainerFromGroups(from_x, from_y, Height{heightIndexOfContainer});
-                valid.at(to_x).at(to_y).at(heightIndexOfContainer) = 1;
+                valid.at(to_x).at(to_y).at(heightIndexToInsert) = 1;
                 valid.at(from_x).at(from_y).at(heightIndexOfContainer) = 0;
             }
 
